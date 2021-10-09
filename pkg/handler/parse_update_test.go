@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ func TestParseUpdateMessageWithText(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to marshal update in json, got %s", err.Error())
 	}
-	req := httptest.NewRequest("POST", "http://myTelegramWebHookHandler.com/secretToken", bytes.NewBuffer(requestBody))
+	req := httptest.NewRequest("POST", "http://api.telegram.org/bot2013265111:AAEADc9CE21y23vmu6tcKQr1RMm6uTINd5Q", bytes.NewBuffer(requestBody))
 
 	var updateToTest, errParse = parseTelegramRequest(req)
 	if errParse != nil {
@@ -50,7 +50,7 @@ func TestParseUpdateMessageWithAudio(t *testing.T) {
 		Message:  msg,
 	}
 	requestBody, _ := json.Marshal(update)
-	req := httptest.NewRequest("POST", "http://myTelegramWebHookHandler.com/secretToken", bytes.NewBuffer(requestBody))
+	req := httptest.NewRequest("POST", "http://api.telegram.org/bot2013265111:AAEADc9CE21y23vmu6tcKQr1RMm6uTINd5Q", bytes.NewBuffer(requestBody))
 
 	var updateToTest, err = parseTelegramRequest(req)
 
@@ -78,7 +78,7 @@ func TestParseUpdateMessageWithVoice(t *testing.T) {
 		Message:  msg,
 	}
 	requestBody, _ := json.Marshal(update)
-	req := httptest.NewRequest("POST", "http://myTelegramWebHookHandler.com/secretToken", bytes.NewBuffer(requestBody))
+	req := httptest.NewRequest("POST", "http://api.telegram.org/bot2013265111:AAEADc9CE21y23vmu6tcKQr1RMm6uTINd5Q", bytes.NewBuffer(requestBody))
 
 	var updateToTest, err = parseTelegramRequest(req)
 
@@ -106,7 +106,7 @@ func TestParseUpdateMessageWithDocument(t *testing.T) {
 		Message:  msg,
 	}
 	requestBody, _ := json.Marshal(update)
-	req := httptest.NewRequest("POST", "http://myTelegramWebHookHandler.com/secretToken", bytes.NewBuffer(requestBody))
+	req := httptest.NewRequest("POST", "http://api.telegram.org/bot2013265111:AAEADc9CE21y23vmu6tcKQr1RMm6uTINd5Q", bytes.NewBuffer(requestBody))
 
 	var updateToTest, err = parseTelegramRequest(req)
 
@@ -127,7 +127,7 @@ func TestParseUpdateInvalid(t *testing.T) {
 	}
 
 	requestBody, _ := json.Marshal(msg)
-	req := httptest.NewRequest("POST", "http://myTelegramWebHookHandler.com/secretToken", bytes.NewBuffer(requestBody))
+	req := httptest.NewRequest("POST", "http://api.telegram.org/bot2013265111:AAEADc9CE21y23vmu6tcKQr1RMm6uTINd5Q", bytes.NewBuffer(requestBody))
 
 	var _, err = parseTelegramRequest(req)
 

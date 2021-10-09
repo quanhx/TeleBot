@@ -1,6 +1,6 @@
 // Package handler contains an HTTP Cloud Function to handle update from Telegram whenever a users interacts with the
 // bot.
-package handler
+package main
 
 import (
 	"encoding/json"
@@ -10,33 +10,98 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 )
 
 // Define a few constants and variable to handle different commands
-const punchCommand string = "/punch"
+const (
+	startCommand string = "/start"
+	bksCommand   string = "/bks"
+	infoCommand  string = "/info"
+	moneyCommand string = "/money"
+	helpCommand  string = "/help"
+)
 
-var lenPunchCommand int = len(punchCommand)
+const (
+	botTag         string = "@xCheckInformationBot"
+	welcomeMessage string = `Xin chào!
+Số dư tài khoản: %v trong tài khoản.
 
-const startCommand string = "/start"
+Dùng /money để nạp tiền, dùng /help để xem hướng dẫn!
+Group support (không chính thức): https://t.me/biensoxe`
 
-var lenStartCommand int = len(startCommand)
+	helpMessage string = `/bsk - Tra thông tin biển số xe - Giá: $2.00
+/info - Xem thông tin tài khoản
+/money - Nạp tiền vào tài khoản
+/help - Hướng dẫn sử dụng
 
-const botTag string = "@RapGeniusBot"
+Ghi chú:
+Group support:@sodienthoai https://t.me/biensoxe`
 
-var lenBotTag int = len(botTag)
+	moneyMessage string = `ĐỊA CHỈ TIỀN ẢO NẠP TIỀN
+
+Các địa chỉ dưới đây DÀNH RIÊNG cho tài khoản có ID: %v, chấp nhận TẤT CẢ các mức nạp.
+Giá trị = số coin thực nhận * tỷ giá tại thời điểm tạo địa chỉ nạp
+
+Bitcoin(BTC = %v):
+%v
+
+Bitcoin Cash(BCH = %v):
+%v
+
+Ethereum(ETH= %v):
+%v
+
+Litecoin(LTC= %v):
+%v
+
+DAI(DAI= %v):
+%v
+
+DOGECOIN(DOGE= %v):
+%v
+
+USDC(=USDC %v - mạng lưới ERC20):
+%v
+
+Sử dụng: /money<Mã tiền ảo> để lấy địa chỉ + ảnh QR riêng cho từng Coin.
+Ví dụ:
+/money bitcoin
+/money BTC
+/money ETH
+/money Litecoin`
+
+	bksMessage = `Biển số xe: %v
+Địa chỉ: Times City, 458 Minh Khai, Hai Bà Trưng, Hà Nội
+Số điện thoại: 0912665660
+Số khung: ABC123456XYZ
+Số máy: XYZ9876543210ABC
+Nhãn hiệu: Honda
+Trạng thái xe: Đang lưu hành`
+
+	infoMessage = `Mã ID(Username): %v
+Fullname: %v
+Số dư tài khoản: $2.00`
+)
 
 // Pass token and sensible APIs through environment variables
-const telegramApiBaseUrl string = "https://api.telegram.org/bot"
-const telegramApiSendMessage string = "/sendMessage"
-const telegramTokenEnv string = "TELEGRAM_BOT_TOKEN"
+const (
+	telegramApiBaseUrl     string = "https://api.telegram.org/bot"
+	telegramApiSendMessage string = "/sendMessage"
+	telegramTokenEnv       string = "2013265111:AAEADc9CE21y23vmu6tcKQr1RMm6uTINd5Q"
 
-var telegramApi string = telegramApiBaseUrl + os.Getenv(telegramTokenEnv) + telegramApiSendMessage
+	demoApiEnv string = "https://dummy.restapiexample.com/api/v1/employees"
+)
 
-const rapLyricsApiEnv string = "RAPLYRICS_API"
+var lenBotTag = len(botTag)
+var lenStartCommand = len(startCommand)
+var lenHelpCommand = len(helpCommand)
+var lenMoneyCommand = len(moneyMessage)
+var lenInfoCommand = len(infoCommand)
+var lenBKSCommand = len(bksCommand)
 
-var rapLyricsApi string = os.Getenv(rapLyricsApiEnv)
+var telegramApi = telegramApiBaseUrl + telegramTokenEnv + telegramApiSendMessage
+var rapLyricsApi = demoApiEnv
 
 // Update is a Telegram object that we receive every time an user interacts with the bot.
 type Update struct {
@@ -104,6 +169,24 @@ type Lyric struct {
 	Punch string `json:"output"`
 }
 
+type WalletAccount struct {
+	MakerCommission  int    `json:"makerCommission"`
+	TakerCommission  int    `json:"takerCommission"`
+	BuyerCommission  int    `json:"buyerCommission"`
+	SellerCommission int    `json:"sellerCommission"`
+	CanTrade         bool   `json:"canTrade"`
+	CanWithdraw      bool   `json:"canWithdraw"`
+	CanDeposit       bool   `json:"canDeposit"`
+	UpdateTime       int64  `json:"updateTime"`
+	AccountType      string `json:"accountType"`
+	Balances         []struct {
+		Asset  string `json:"asset"`
+		Free   string `json:"free"`
+		Locked string `json:"locked"`
+	} `json:"balances"`
+	Permissions []string `json:"permissions"`
+}
+
 // HandleTelegramWebHook sends a message back to the chat with a punchline starting by the message provided by the user.
 func HandleTelegramWebHook(w http.ResponseWriter, r *http.Request) {
 
@@ -116,21 +199,59 @@ func HandleTelegramWebHook(w http.ResponseWriter, r *http.Request) {
 
 	// Sanitize input
 	var sanitizedSeed = sanitize(update.Message.Text)
+	//var telegramResponseBody string
+	//var errTelegram error
 
-	// Call RapLyrics to get a punchline
-	var lyric, errRapLyrics = getPunchline(sanitizedSeed)
-	if errRapLyrics != nil {
-		log.Printf("got error when calling RapLyrics API %s", errRapLyrics.Error())
-		return
+	var message string
+
+	switch sanitizedSeed {
+	case "":
+		message = welcomeMessage
+	case helpCommand:
+		message = helpMessage
+	case moneyCommand:
+		message = moneyMessage
+	case infoCommand:
+		message = infoMessage
+	default:
+		message = bksMessage
+		//case bksCommand:
+		//	message = bksMessage
 	}
 
-	// Send the punchline back to Telegram
-	var telegramResponseBody, errTelegram = sendTextToTelegramChat(update.Message.Chat.Id, lyric)
+	telegramResponseBody, errTelegram := sendTextToTelegramChat(update.Message.Chat.Id, message)
 	if errTelegram != nil {
 		log.Printf("got error %s from telegram, response body is %s", errTelegram.Error(), telegramResponseBody)
 	} else {
-		log.Printf("punchline %s successfully distributed to chat id %d", lyric, update.Message.Chat.Id)
+		log.Printf("startline %s successfully distributed to chat id %d", welcomeMessage, update.Message.Chat.Id)
 	}
+
+	// Start command
+	//if sanitizedSeed == "" {
+	//	// Init welcome message
+	//	var telegramResponseBody, errTelegram = sendTextToTelegramChat(update.Message.Chat.Id, welcomeMessage)
+	//	if errTelegram != nil {
+	//		log.Printf("got error %s from telegram, response body is %s", errTelegram.Error(), telegramResponseBody)
+	//	} else {
+	//		log.Printf("startline %s successfully distributed to chat id %d", welcomeMessage, update.Message.Chat.Id)
+	//	}
+	//} else {
+	//
+	//	// Call RapLyrics to get a punchline
+	//	var lyric, errRapLyrics = getPunchline(sanitizedSeed)
+	//	if errRapLyrics != nil {
+	//		log.Printf("got error when calling RapLyrics API %s", errRapLyrics.Error())
+	//		return
+	//	}
+	//
+	//	// Send the punchline back to Telegram
+	//	var telegramResponseBody, errTelegram = sendTextToTelegramChat(update.Message.Chat.Id, lyric)
+	//	if errTelegram != nil {
+	//		log.Printf("got error %s from telegram, response body is %s", errTelegram.Error(), telegramResponseBody)
+	//	} else {
+	//		log.Printf("punchline %s successfully distributed to chat id %d", lyric, update.Message.Chat.Id)
+	//	}
+	//}
 }
 
 // parseTelegramRequest handles incoming update from the Telegram web hook
@@ -148,23 +269,49 @@ func parseTelegramRequest(r *http.Request) (*Update, error) {
 }
 
 // sanitize remove clutter like /start /punch or the bot name from the string s passed as input
-func sanitize(s string) string {
+func sanitize(s string) (msg string) {
 	if len(s) >= lenStartCommand {
 		if s[:lenStartCommand] == startCommand {
-			s = s[lenStartCommand:]
+			msg = s[lenStartCommand:]
+			return msg
 		}
 	}
 
-	if len(s) >= lenPunchCommand {
-		if s[:lenPunchCommand] == punchCommand {
-			s = s[lenPunchCommand:]
+	if len(s) >= lenHelpCommand {
+		if s[:lenHelpCommand] == helpCommand {
+			//msg = s[lenHelpCommand:]
+			return s
 		}
 	}
+
+	if len(s) >= lenMoneyCommand {
+		if s[:lenMoneyCommand] == moneyCommand {
+			msg = s[lenMoneyCommand:]
+			return msg
+		}
+	}
+
+	if len(s) >= lenInfoCommand {
+		if s[:lenInfoCommand] == infoCommand {
+			//msg = s[lenInfoCommand:]
+			return s
+		}
+	}
+
+	if len(s) >= lenBKSCommand {
+		if s[:lenBKSCommand] == bksCommand {
+			msg = s[lenBKSCommand:]
+			return msg
+		}
+	}
+
 	if len(s) >= lenBotTag {
 		if s[:lenBotTag] == botTag {
-			s = s[lenBotTag:]
+			msg = s[lenBotTag:]
+			return msg
 		}
 	}
+
 	return s
 }
 
@@ -190,6 +337,8 @@ func getPunchline(seed string) (string, error) {
 func sendTextToTelegramChat(chatId int, text string) (string, error) {
 
 	log.Printf("Sending %s to chat_id: %d", text, chatId)
+
+	//var telegramApi = "https://api.telegram.org/bot" + os.Getenv("TELEGRAM_BOT_TOKEN") + "/sendMessage"
 	response, err := http.PostForm(
 		telegramApi,
 		url.Values{
@@ -212,4 +361,12 @@ func sendTextToTelegramChat(chatId int, text string) (string, error) {
 	log.Printf("Body of Telegram Response: %s", bodyString)
 
 	return bodyString, nil
+}
+
+func main() {
+	fmt.Println("start bot API")
+	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%v", 8080), http.HandlerFunc(HandleTelegramWebHook))
+	if err != nil {
+		return
+	}
 }

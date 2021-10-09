@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ func TestSanitizePunchCommand(t *testing.T) {
 }
 
 func TestSanitizeBotTagCommand(t *testing.T) {
-	var s = "@RapGeniusBot yo dawg"
+	var s = "@xCheckInformationBot yo dawg"
 	var out = sanitize(s)
 	var expected = " yo dawg"
 	if expected != out {
