@@ -169,23 +169,23 @@ type Lyric struct {
 	Punch string `json:"output"`
 }
 
-type WalletAccount struct {
-	MakerCommission  int    `json:"makerCommission"`
-	TakerCommission  int    `json:"takerCommission"`
-	BuyerCommission  int    `json:"buyerCommission"`
-	SellerCommission int    `json:"sellerCommission"`
-	CanTrade         bool   `json:"canTrade"`
-	CanWithdraw      bool   `json:"canWithdraw"`
-	CanDeposit       bool   `json:"canDeposit"`
-	UpdateTime       int64  `json:"updateTime"`
-	AccountType      string `json:"accountType"`
-	Balances         []struct {
-		Asset  string `json:"asset"`
-		Free   string `json:"free"`
-		Locked string `json:"locked"`
-	} `json:"balances"`
-	Permissions []string `json:"permissions"`
-}
+//type WalletAccount struct {
+//	MakerCommission  int    `json:"makerCommission"`
+//	TakerCommission  int    `json:"takerCommission"`
+//	BuyerCommission  int    `json:"buyerCommission"`
+//	SellerCommission int    `json:"sellerCommission"`
+//	CanTrade         bool   `json:"canTrade"`
+//	CanWithdraw      bool   `json:"canWithdraw"`
+//	CanDeposit       bool   `json:"canDeposit"`
+//	UpdateTime       int64  `json:"updateTime"`
+//	AccountType      string `json:"accountType"`
+//	Balances         []struct {
+//		Asset  string `json:"asset"`
+//		Free   string `json:"free"`
+//		Locked string `json:"locked"`
+//	} `json:"balances"`
+//	Permissions []string `json:"permissions"`
+//}
 
 // HandleTelegramWebHook sends a message back to the chat with a punchline starting by the message provided by the user.
 func HandleTelegramWebHook(w http.ResponseWriter, r *http.Request) {
